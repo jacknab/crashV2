@@ -1,0 +1,18 @@
+{
+  "name": "crypto-crash-game",
+  "version": "1.0.0",
+  "description": "Crypto crash game with animated spaceship",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "chalk": "^4.1.2",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "sequelize": "^6.37.5",
+    "sqlite3": "^5.1.7",
+    "ws": "^8.18.0"
+  }
+}
