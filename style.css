@@ -89,11 +89,11 @@ main {
 /* Game Container */
 #gameContainer {
     position: relative;
-    width: min(100%, 800px);
-    aspect-ratio: 16/9;
+    width: min(100%, 620px);    /* Reduced from 800px */
+    aspect-ratio: 15/9;          /* Changed from 16/9 for more compact view */
     margin: 0;
-    padding-left: 25px;
-    padding-bottom: 20px;
+    padding-left: 20px;         /* Reduced from 25px */
+    padding-bottom: 15px;       /* Reduced from 20px */
     border-radius: 4px;
     overflow: hidden;
     background: #232323;
@@ -159,7 +159,7 @@ main {
 /* Multiplier Display */
 #currentMultiplier {
     position: absolute;
-    top: 50%;
+    top: calc(50% - 15px);    /* Move up 15px from center */
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: clamp(24px, min(15vw, 15vh), 144px);
@@ -362,12 +362,12 @@ main {
     }
 
     #gameContainer {
-        padding-left: 15px;
+        padding-left: 12px;
     }
     
     #currentMultiplier {
         width: 85%;
-        font-size: clamp(20px, min(12vw, 12vh), 96px);
+        font-size: clamp(18px, min(10vw, 10vh), 86px);
     }
 
     .betting-controls {

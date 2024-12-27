@@ -1,20 +1,16 @@
 const { DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
-    if (!sequelize) {
-        console.error('Sequelize instance is undefined in user.js');
-        throw new Error('Sequelize instance is required to initialize the User model');
-    }
-
     return sequelize.define('User', {
         id: {
             type: DataTypes.BIGINT,
             primaryKey: true,
             autoIncrement: true
         },
-        name: {
+        username: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: false,
+            unique: true
         },
         email: {
             type: DataTypes.STRING,
@@ -28,8 +24,9 @@ module.exports = (sequelize) => {
         status: {
             type: DataTypes.STRING,
             defaultValue: 'active'
-        },
-        created_at: DataTypes.DATE,
-        updated_at: DataTypes.DATE
+        }
+    }, {
+        timestamps: true,
+        underscored: true
     });
 };

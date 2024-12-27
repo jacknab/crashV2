@@ -1,6 +1,6 @@
 module.exports = {
     database: {
-        type: "sqlite",
+        type: "postgresql",
         sqlite: {
             path: "./data/database.sqlite"
         },
@@ -15,7 +15,7 @@ module.exports = {
             host: "localhost",
             port: 5432,
             user: "postgres",
-            password: "password",
+            password: "1825Logan305",
             database: "app_db"
         }
     }

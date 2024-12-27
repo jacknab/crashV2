@@ -9,6 +9,7 @@ const { initializeDatabase, getSequelizeInstance } = require('./database/databas
 const UserModel = require('./database/models/user');
 const TransactionModel = require('./database/models/transactions');
 const WalletModel = require('./database/models/wallet');
+const auth = require('./middleware/auth');
 
 const chalk = require('chalk');
 
@@ -17,7 +18,8 @@ app.use(express.json());
 app.use(bodyParser.json());
 
 app.use(express.static(path.join(__dirname)));
-app.use(express.static(path.join(__dirname, 'src')));
+// Update static file serving
+app.use(express.static(path.join(__dirname, 'public')));
 
 let currentSpeed = 1;
 const SECRET_KEY = 'your_secret_key';
@@ -25,13 +27,11 @@ const SECRET_KEY = 'your_secret_key';
 // Initialize database and models
 (async () => {
     try {
-        // Initialize database
         await initializeDatabase();
         const sequelize = getSequelizeInstance();
 
         console.log('Sequelize instance in server.js after initializeDatabase:', sequelize);
 
-        // Initialize models
         const User = UserModel(sequelize);
         console.log('User model initialized successfully.');
 
@@ -41,7 +41,6 @@ const SECRET_KEY = 'your_secret_key';
         const Wallet = WalletModel(sequelize);
         console.log('Wallet model initialized successfully.');
 
-        // Sync models
         try {
             await sequelize.sync({ alter: true });
             console.log(chalk.green('All models synchronized successfully with the selected database.'));
@@ -50,7 +49,7 @@ const SECRET_KEY = 'your_secret_key';
             process.exit(1);
         }
 
-        startWaitingPeriod(); // Start the crash game waiting period
+        startWaitingPeriod();
     } catch (error) {
         console.error(chalk.red('Failed to initialize server:', error));
         process.exit(1);
@@ -72,7 +71,17 @@ app.post('/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await User.create({ username, password: hashedPassword });
 
-        res.status(201).json({ message: 'User registered successfully.', userId: user.id });
+        const token = jwt.sign(
+            { userId: user.id, username: user.username },
+            SECRET_KEY,
+            { expiresIn: '24h' }
+        );
+
+        res.status(201).json({ 
+            message: 'User registered successfully.',
+            userId: user.id,
+            token
+        });
     } catch (error) {
         console.error(chalk.red('Error during registration:', error));
         res.status(500).json({ error: 'Registration failed. Username may already be taken.' });
@@ -96,36 +105,55 @@ app.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials.' });
         }
 
-        const token = jwt.sign({ userId: user.id }, SECRET_KEY, { expiresIn: '1h' });
-        res.json({ message: 'Login successful.', token });
+        const token = jwt.sign(
+            { userId: user.id, username: user.username },
+            SECRET_KEY,
+            { expiresIn: '24h' }
+        );
+
+        res.json({ 
+            message: 'Login successful.',
+            token,
+            userId: user.id,
+            username: user.username
+        });
     } catch (error) {
         console.error(chalk.red('Error during login:', error));
         res.status(500).json({ error: 'Login failed.' });
     }
 });
 
-// Profile route
-app.get('/profile', async (req, res) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-        return res.status(401).json({ error: 'Authorization token is missing.' });
-    }
-
+// Profile route with auth middleware
+app.get('/profile', auth, async (req, res) => {
     try {
-        const decoded = jwt.verify(token, SECRET_KEY);
         const sequelize = getSequelizeInstance();
         const User = UserModel(sequelize);
 
-        const user = await User.findByPk(decoded.userId);
+        const user = await User.findByPk(req.user.userId);
         if (!user) {
             return res.status(404).json({ error: 'User not found.' });
         }
-        res.json({ message: 'Profile fetched successfully.', user });
+        
+        res.json({ 
+            message: 'Profile fetched successfully.',
+            user: {
+                id: user.id,
+                username: user.username
+            }
+        });
     } catch (error) {
         console.error(chalk.red('Error during profile fetch:', error));
-        res.status(401).json({ error: 'Invalid or expired token.' });
+        res.status(500).json({ error: 'Failed to fetch profile.' });
     }
 });
+
+// Add before WebSocket setup
+app.get('/dashboard', auth, (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+// Update static file serving
+app.use(express.static('public'));
 
 // WebSocket server setup
 const server = http.createServer(app);

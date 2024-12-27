@@ -1,0 +1,118 @@
+public/dashboard.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crash Game Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <h1>Crash Game Dashboard</h1>
+            <div id="user-info"></div>
+            <button onclick="logout()">Logout</button>
+        </header>
+
+        <div class="game-container">
+            <div id="multiplier">1.00x</div>
+            <div id="game-status">Waiting for next game...</div>
+            <div id="bet-controls">
+                <input type="number" id="bet-amount" min="1" step="1" placeholder="Bet amount">
+                <button id="place-bet" onclick="placeBet()">Place Bet</button>
+                <button id="cash-out" onclick="cashOut()" disabled>Cash Out</button>
+            </div>
+        </div>
+
+        <div class="game-history">
+            <h3>Recent Games</h3>
+            <div id="history-list"></div>
+        </div>
+    </div>
+
+    <script>
+        let ws = new WebSocket('ws://localhost:8080');
+        let currentBet = null;
+
+        // WebSocket event handlers
+        ws.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            switch(data.event) {
+                case 'waiting':
+                    document.getElementById('game-status').textContent = `Next game in ${data.countdown}s`;
+                    document.getElementById('place-bet').disabled = false;
+                    document.getElementById('cash-out').disabled = true;
+                    break;
+                    
+                case 'game_start':
+                    document.getElementById('game-status').textContent = 'Game in progress';
+                    document.getElementById('place-bet').disabled = true;
+                    if (currentBet) {
+                        document.getElementById('cash-out').disabled = false;
+                    }
+                    break;
+                    
+                case 'progress':
+                    document.getElementById('multiplier').textContent = `${data.multiplier}x`;
+                    break;
+                    
+                case 'crash':
+                    document.getElementById('game-status').textContent = `Crashed at ${data.multiplier}x!`;
+                    document.getElementById('cash-out').disabled = true;
+                    currentBet = null;
+                    updateHistory(data.multiplier);
+                    break;
+            }
+        };
+
+        function updateHistory(crashPoint) {
+            const history = document.getElementById('history-list');
+            const entry = document.createElement('div');
+            entry.textContent = `${crashPoint}x`;
+            entry.className = 'history-entry';
+            history.insertBefore(entry, history.firstChild);
+            
+            // Keep only last 10 entries
+            while (history.children.length > 10) {
+                history.removeChild(history.lastChild);
+            }
+        }
+
+        function placeBet() {
+            const amount = document.getElementById('bet-amount').value;
+            if (amount < 1) return;
+            
+            currentBet = {
+                amount: parseFloat(amount),
+                timestamp: Date.now()
+            };
+            
+            document.getElementById('place-bet').disabled = true;
+        }
+
+        function cashOut() {
+            if (!currentBet) return;
+            
+            const multiplier = parseFloat(document.getElementById('multiplier').textContent);
+            const winnings = currentBet.amount * multiplier;
+            
+            alert(`Cashed out ${winnings.toFixed(2)}!`);
+            currentBet = null;
+            document.getElementById('cash-out').disabled = true;
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/login.html';
+        }
+
+        // Check authentication on load
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+    </script>
+</body>
+</html>
